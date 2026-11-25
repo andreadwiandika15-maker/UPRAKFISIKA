@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0929d8">
+  <title>Survei Kondisi Belajar — SMAN 1 Sumberrejo</title>
+  <style>
+    :root{--blue:#102bdc;--blue2:#071b9b;--orange:#f47716;--yellow:#ffe51e;--ink:#151515;--muted:#65708a;--line:#e6e9f2}
+    *{box-sizing:border-box}body{margin:0;background:linear-gradient(140deg,#06158e,#1839f2 55%,#06158e);font-family:Arial,Helvetica,sans-serif;color:var(--ink);padding:28px 14px 50px}
+    .wrap{max-width:850px;margin:auto}.top{color:white;text-align:center;margin:0 auto 20px}.top img{width:112px;height:112px;object-fit:contain;background:white;border-radius:50%;padding:5px;border:4px solid var(--yellow);box-shadow:0 8px 24px #0004}
+    .top h1{font-size:clamp(22px,4vw,34px);margin:12px 0 5px;text-transform:uppercase;letter-spacing:.5px}.top p{margin:5px 0;color:#e9edff}
+    .panel{background:#fff;border:5px solid var(--yellow);border-radius:22px;padding:clamp(18px,4vw,34px);box-shadow:0 18px 45px #0005}
+    .ribbon{background:var(--orange);color:#111;text-align:center;font-weight:900;text-transform:uppercase;padding:12px;border:3px solid #111;transform:rotate(-1deg);margin:-3px 8px 24px;border-radius:8px;letter-spacing:.5px}
+    .intro{color:#4e5870;line-height:1.55;margin-bottom:22px}
+    .student-info{display:grid;grid-template-columns:1fr 190px;gap:14px;background:#f4f6ff;padding:16px;border-radius:14px;border:1px solid #dce2ff;margin-bottom:22px}
+    label{display:block;font-weight:800;margin-bottom:8px}.field input,.field select{width:100%;padding:13px 12px;border:2px solid #d8def0;border-radius:10px;font-size:16px;background:#fff;outline:none}.field input:focus,.field select:focus{border-color:var(--blue);box-shadow:0 0 0 3px #102bdc1a}
+    .question{padding:18px 0;border-bottom:1px solid var(--line)}.question:last-of-type{border-bottom:0}.q-title{font-weight:800;line-height:1.45;margin-bottom:13px}.q-num{display:inline-grid;place-items:center;background:var(--blue);color:#fff;width:28px;height:28px;border-radius:8px;margin-right:8px;font-size:14px}
+    .options{display:grid;grid-template-columns:1fr 1fr;gap:9px}.option{display:flex;align-items:center;gap:10px;border:1.5px solid #dfe3ef;border-radius:10px;padding:11px 12px;cursor:pointer;min-height:46px;transition:.15s}.option:hover{border-color:var(--blue);background:#f5f6ff}.option:has(input:checked){border-color:var(--blue);background:#edf0ff;box-shadow:inset 0 0 0 1px var(--blue)}.option input{accent-color:var(--blue);width:17px;height:17px;flex:0 0 auto}.submit{display:block;width:100%;margin-top:25px;padding:16px;border:3px solid #111;border-radius:12px;background:var(--yellow);font-size:17px;font-weight:900;text-transform:uppercase;cursor:pointer;box-shadow:0 5px 0 #111}.submit:disabled{opacity:.6;cursor:wait}.notice{display:none;margin-top:16px;padding:13px;border-radius:10px;font-weight:700;line-height:1.45}.notice.ok{display:block;background:#e8f8ed;color:#176b32}.notice.err{display:block;background:#fff0ed;color:#a12b1c}.foot{text-align:center;color:#e6eaff;font-size:12px;margin-top:18px}
+    @media(max-width:580px){.student-info{grid-template-columns:1fr}.options{grid-template-columns:1fr}.top img{width:92px;height:92px}.panel{border-width:3px}}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <img src="logo-sekolah.jpeg" alt="Logo SMA Negeri 1 Sumberrejo">
+    <h1>Survei Kondisi Belajar</h1>
+    <p>SMA Negeri 1 Sumberrejo · Kelas XI</p>
+  </header>
+  <main class="panel">
+    <div class="ribbon">Angket Kebiasaan dan Konsentrasi Belajar</div>
+    <p class="intro">Halo! Kami ingin mengetahui kondisi belajar yang paling nyaman bagi siswa, seperti suasana ramai atau sepi serta kebiasaan mendengarkan musik. Isi sesuai pengalamanmu sendiri. Tidak ada jawaban benar atau salah. Jawabanmu akan digunakan untuk keperluan kegiatan pembelajaran/penelitian.</p>
+    <form id="surveyForm">
+      <div class="student-info">
+        <div class="field"><label for="nama">Nama lengkap</label><input id="nama" name="nama" type="text" maxlength="80" placeholder="Masukkan nama lengkap" required autocomplete="name"></div>
+        <div class="field"><label for="kelas">Kelas</label><select id="kelas" name="kelas" required><option value="">Pilih kelas</option><option>XI 1</option><option>XI 2</option><option>XI 3</option><option>XI 4</option><option>XI 5</option><option>XI 6</option><option>XI 7</option><option>XI 8</option><option>XI 9</option></select></div>
+      </div>
+      <div id="questions"></div>
+      <button class="submit" id="submitBtn" type="submit">Kirim Jawaban</button>
+      <div id="notice" class="notice" role="status" aria-live="polite"></div>
+    </form>
+  </main>
+  <div class="foot">SMA NEGERI 1 SUMBERREJO · Berakhlak mulia · Berdisiplin · Berprestasi</div>
+</div>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+  import { getDatabase, ref, push, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyASzJSNZTIekHxXL9TnF_f-GZAjB2G09KA",
+    authDomain: "uprak-fisika.firebaseapp.com",
+    databaseURL: "https://uprak-fisika-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "uprak-fisika",
+    storageBucket: "uprak-fisika.firebasestorage.app",
+    messagingSenderId: "706403440787",
+    appId: "1:706403440787:web:6bce5a83c208b03700d566"
+  };
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  const questions = [
+    ["Kamu lebih suka belajar di lingkungan seperti apa?",["Sangat sepi","Cukup sepi","Ada suara latar ringan","Ramai"]],
+    ["Apakah kamu terbiasa mendengarkan musik saat belajar?",["Selalu","Sering","Kadang-kadang","Tidak pernah"]],
+    ["Jika belajar sambil mendengarkan musik, jenis musik apa yang biasanya kamu dengarkan?",["Musik instrumental (tanpa vokal)","Musik pop / lagu dengan vokal","Musik lo-fi / chill","Tidak mendengarkan musik"]],
+    ["Menurutmu, mendengarkan musik saat belajar dapat membantu konsentrasi?",["Sangat membantu","Cukup membantu","Tidak terlalu membantu","Justru mengganggu"]],
+    ["Saat belajar sambil mendengarkan musik, seberapa mudah kamu memahami materi?",["Sangat mudah","Cukup mudah","Biasa saja","Sulit memahami"]],
+    ["Seberapa besar suara lingkungan sekitar memengaruhi konsentrasi belajarmu?",["Sangat memengaruhi","Cukup memengaruhi","Sedikit memengaruhi","Tidak memengaruhi"]],
+    ["Ketika belajar di tempat ramai, bagaimana kemampuanmu dalam berkonsentrasi?",["Sangat sulit","Cukup sulit","Masih bisa berkonsentrasi","Sangat mudah"]],
+    ["Ketika belajar di tempat sepi, bagaimana kemampuanmu dalam berkonsentrasi?",["Sangat mudah","Cukup mudah","Biasa saja","Justru sulit"]],
+    ["Jika diberikan pilihan untuk belajar selama satu jam, kamu lebih memilih?",["Tempat sepi tanpa musik","Tempat sepi sambil mendengarkan musik","Tempat ramai tanpa musik","Tempat ramai sambil mendengarkan musik"]],
+    ["Menurutmu, tingkat suara seperti apa yang paling ideal untuk belajar?",["Sangat rendah (hampir tanpa suara)","Rendah (suasana tenang)","Sedang (suara latar atau musik pelan)","Tinggi (lingkungan ramai)"]]
+  ];
+  const questionsEl = document.getElementById("questions");
+  questions.forEach((q,i)=>{
+    const section=document.createElement("section"); section.className="question";
+    const title=document.createElement("div"); title.className="q-title";
+    const num=document.createElement("span"); num.className="q-num"; num.textContent=i+1;
+    title.append(num,document.createTextNode(q[0])); section.append(title);
+    const options=document.createElement("div"); options.className="options";
+    q[1].forEach((answer,j)=>{
+      const label=document.createElement("label"); label.className="option";
+      const input=document.createElement("input"); input.type="radio"; input.name="q"+(i+1); input.value=String.fromCharCode(65+j); input.required=true;
+      const span=document.createElement("span"); span.textContent=String.fromCharCode(65+j)+". "+answer;
+      label.append(input,span); options.append(label);
+    });
+    section.append(options); questionsEl.append(section);
+  });
+
+  const form=document.getElementById("surveyForm"), btn=document.getElementById("submitBtn"), notice=document.getElementById("notice");
+  form.addEventListener("submit",async e=>{
+    e.preventDefault();
+    if(!form.reportValidity()) return;
+    const answers={};
+    questions.forEach((q,i)=>{const selected=form.querySelector(`input[name="q${i+1}"]:checked`);answers["pertanyaan"+(i+1)]={pilihan:selected.value,jawaban:q[1][selected.value.charCodeAt(0)-65]};});
+    const payload={nama:form.nama.value.trim(),kelas:form.kelas.value,jawaban:answers,dikirimPada:serverTimestamp()};
+    btn.disabled=true;btn.textContent="Mengirim...";
+    notice.className="notice";notice.textContent="";
+    try{
+      await push(ref(db,"responses"),payload);
+      notice.className="notice ok";notice.textContent="Terima kasih! Jawabanmu berhasil dikirim.";
+      form.reset();window.scrollTo({top:0,behavior:"smooth"});
+    }catch(err){
+      console.error(err);notice.className="notice err";notice.textContent="Jawaban belum berhasil dikirim. Periksa koneksi internet atau coba lagi beberapa saat.";
+    }finally{btn.disabled=false;btn.textContent="Kirim Jawaban";}
+  });
+</script>
+</body>
+</html>
